@@ -1,1 +1,56 @@
+'''Task: 1 - DATA PROCESSING ~ This task involves cleaning, transforming, and preparing raw data for AI model training.'''
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+
+# Simulate loading raw data
+data = {
+    'Feature1': [1.0, 2.5, 3.3, np.nan, 4.5, 5.1, 6.7, 8.9, np.nan, 10.2],
+    'Feature2': ['A', 'B', 'A', 'B', 'A', 'B', 'A', 'B', 'A', 'B'],
+    'Feature3': [10, 15, 10, np.nan, 25, 30, 35, 40, 45, 50],
+    'Label': [0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+}
+raw_df = pd.DataFrame(data)
+print("Raw Data:\n", raw_df)
+
+# Handle missing values
+cleaned_df = raw_df.copy()
+cleaned_df['Feature1'].fillna(cleaned_df['Feature1'].mean(), inplace=True)
+cleaned_df['Feature3'].fillna(cleaned_df['Feature3'].median(), inplace=True)
+
+# Check for duplicates and remove them if any
+cleaned_df.drop_duplicates(inplace=True)
+
+print("\nCleaned Data:\n", cleaned_df)
+
+# Define the column transformer
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), ['Feature1', 'Feature3']),
+        ('cat', OneHotEncoder(), ['Feature2'])
+    ])
+
+# Transform the data
+transformed_data = preprocessor.fit_transform(cleaned_df)
+transformed_df = pd.DataFrame(transformed_data, columns=['Feature1_scaled', 'Feature3_scaled', 'Feature2_A', 'Feature2_B'])
+
+# Add the label back to the transformed dataframe
+transformed_df['Label'] = cleaned_df['Label'].values
+
+print("\nTransformed Data:\n", transformed_df)
+
+# Split the data into training and testing sets
+X = transformed_df.drop('Label', axis=1)
+y = transformed_df['Label']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+
+print("\nTraining Features:\n", X_train)
+print("\nTraining Labels:\n", y_train)
+print("\nTesting Features:\n", X_test)
+print("\nTesting Labels:\n", y_test)
 
