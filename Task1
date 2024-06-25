@@ -2,55 +2,57 @@
 
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 
-# Simulate loading raw data
-data = {
-    'Feature1': [1.0, 2.5, 3.3, np.nan, 4.5, 5.1, 6.7, 8.9, np.nan, 10.2],
-    'Feature2': ['A', 'B', 'A', 'B', 'A', 'B', 'A', 'B', 'A', 'B'],
-    'Feature3': [10, 15, 10, np.nan, 25, 30, 35, 40, 45, 50],
-    'Label': [0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
-}
-raw_df = pd.DataFrame(data)
-print("Raw Data:\n", raw_df)
+# Load the Titanic dataset
+data = pd.read_csv('train.csv')
 
-# Handle missing values
-cleaned_df = raw_df.copy()
-cleaned_df['Feature1'].fillna(cleaned_df['Feature1'].mean(), inplace=True)
-cleaned_df['Feature3'].fillna(cleaned_df['Feature3'].median(), inplace=True)
+# Display the first few rows of the dataset
+print(data.head())
 
-# Check for duplicates and remove them if any
-cleaned_df.drop_duplicates(inplace=True)
+# Check for missing values
+print(data.isnull().sum())
 
-print("\nCleaned Data:\n", cleaned_df)
+# Fill missing values
+data['Age'].fillna(data['Age'].median(), inplace=True)
+data['Embarked'].fillna(data['Embarked'].mode()[0], inplace=True)
+data['Cabin'].fillna('Unknown', inplace=True)
 
-# Define the column transformer
-preprocessor = ColumnTransformer(
-    transformers=[
-        ('num', StandardScaler(), ['Feature1', 'Feature3']),
-        ('cat', OneHotEncoder(), ['Feature2'])
-    ])
+# Extract the title from the 'Name' column *before* dropping it
+data['Title'] = data['Name'].apply(lambda x: x.split(',')[1].split('.')[0].strip())
 
-# Transform the data
-transformed_data = preprocessor.fit_transform(cleaned_df)
-transformed_df = pd.DataFrame(transformed_data, columns=['Feature1_scaled', 'Feature3_scaled', 'Feature2_A', 'Feature2_B'])
+# Drop columns with too many missing values or that won't be used
+data.drop(['PassengerId', 'Name', 'Ticket'], axis=1, inplace=True) # Now you can safely drop 'Name'
 
-# Add the label back to the transformed dataframe
-transformed_df['Label'] = cleaned_df['Label'].values
+# Create new feature 'FamilySize'
+data['FamilySize'] = data['SibSp'] + data['Parch'] + 1
 
-print("\nTransformed Data:\n", transformed_df)
+# Drop the 'SibSp' and 'Parch' columns
+data.drop(['SibSp', 'Parch'], axis=1, inplace=True)
 
-# Split the data into training and testing sets
-X = transformed_df.drop('Label', axis=1)
-y = transformed_df['Label']
+# Simplify the titles
+data['Title'] = data['Title'].replace(['Lady', 'the Countess', 'Countess', 'Capt', 'Col', 'Don', 'Dr', 'Major', 'Rev', 'Sir', 'Jonkheer', 'Dona'], 'Rare')
+data['Title'] = data['Title'].replace('Mlle', 'Miss')
+data['Title'] = data['Title'].replace('Ms', 'Miss')
+data['Title'] = data['Title'].replace('Mme', 'Mrs')
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+# Encode categorical variables
+labelencoder = LabelEncoder()
+data['Sex'] = labelencoder.fit_transform(data['Sex'])
+data['Embarked'] = labelencoder.fit_transform(data['Embarked'])
+data['Title'] = labelencoder.fit_transform(data['Title'])
 
-print("\nTraining Features:\n", X_train)
-print("\nTraining Labels:\n", y_train)
-print("\nTesting Features:\n", X_test)
-print("\nTesting Labels:\n", y_test)
+# Scale numerical features
+scaler = StandardScaler()
+data[['Age', 'Fare', 'FamilySize']] = scaler.fit_transform(data[['Age', 'Fare', 'FamilySize']])
 
+# Separate features and target variable
+X = data.drop('Survived', axis=1)
+y = data['Survived']
+
+# Split the data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Display the shape of the training and testing sets
+print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
