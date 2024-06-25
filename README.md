@@ -71,7 +71,7 @@ This process covers essential steps in preparing raw data for AI model training,
 
 
 
-OUTPUTS:
+# OUTPUTS:
 
 
 ![Screenshot 2024-06-25 113748](https://github.com/tarangver/CODTECH-TASK1/assets/122903177/6af7e937-b0c4-4481-a60b-ffe1e2a251a2)
